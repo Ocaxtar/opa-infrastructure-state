@@ -1,0 +1,133 @@
+version: "1.0.0"
+last_updated: "2026-01-20T12:05:00Z"
+updated_by: "supervisor"
+
+# Estado de contenedores Docker
+containers:
+  timescaledb_quotes:
+    image: "timescale/timescaledb:2.16.1-pg16"
+    port: 5433
+    status: assigned
+    health: unknown
+    container_name: "opa-quotes-storage-dev"
+    credentials:
+      user: opa_user
+      password: opa_password
+      database: opa_quotes
+    notes: "TimescaleDB para módulo Quotes"
+    
+  timescaledb_capacity:
+    image: "timescale/timescaledb:2.16.1-pg16"
+    port: 5434
+    status: reserved
+    health: unknown
+    container_name: "opa-capacity-storage-dev"
+    credentials:
+      user: opa_user
+      password: opa_password
+      database: opa_capacity
+    notes: "TimescaleDB para módulo Capacity (futuro)"
+    
+  redis:
+    image: "redis:7.2-alpine"
+    port: 6381
+    status: reserved
+    health: unknown
+    container_name: "opa-redis-dev"
+    notes: "Redis Pub/Sub + Cache (Fase 2)"
+    
+  postgres_local:
+    port: 5432
+    status: occupied
+    notes: "PostgreSQL local Windows - CONFLICTO - NO USAR"
+
+# Puertos asignados/reservados
+ports:
+  5432: "PostgreSQL local (Windows) - BLOQUEADO - CONFLICTO"
+  5433: "TimescaleDB Quotes (Docker)"
+  5434: "TimescaleDB Capacity (Docker) - RESERVADO"
+  5435: "TimescaleDB Prediction (Docker) - RESERVADO"
+  5436: "TimescaleDB Intention (Docker) - RESERVADO"
+  5437: "TimescaleDB Monitoring (Docker) - RESERVADO"
+  6379: "Redis Shared - RESERVADO"
+  6380: "Redis Tests - RESERVADO"
+  6381: "Redis Dev (Fase 2) - RESERVADO"
+  8000: "opa-quotes-api - ASIGNADO"
+  8001: "opa-capacity-api - RESERVADO"
+  8002: "opa-prediction-api - RESERVADO"
+  8003: "opa-intention-api - RESERVADO"
+  8004: "opa-monitoring-api - RESERVADO"
+  9000: "opa-quotes-streamer (Rust) - RESERVADO"
+
+# Servicios operativos (actualizado por repos)
+services:
+  opa-quotes-streamer:
+    last_run: "2026-01-20T11:44:00Z"
+    last_commit: "ed42f4a"
+    status: operational
+    issues_completed: ["OPA-291", "OPA-293"]
+    
+  opa-quotes-storage:
+    last_run: "2026-01-20T11:45:00Z"
+    last_commit: "1f61495"
+    status: operational
+    issues_completed: ["OPA-293"]
+    
+  opa-quotes-api:
+    last_run: "2026-01-20T11:45:00Z"
+    last_commit: "7d34408"
+    status: operational
+    issues_completed: ["OPA-293"]
+    
+  opa-capacity-ingest:
+    last_run: "2026-01-20T11:38:00Z"
+    last_commit: "f41de42"
+    status: operational
+    issues_completed: ["OPA-293"]
+    
+  opa-capacity-compute:
+    last_run: "2026-01-20T11:40:00Z"
+    last_commit: "8f3703b"
+    status: operational
+    issues_completed: ["OPA-293"]
+    
+  opa-capacity-api:
+    last_run: "2026-01-20T11:41:00Z"
+    last_commit: "d23d996"
+    status: operational
+    issues_completed: ["OPA-293"]
+
+# Contratos activos (copiados desde supervisor)
+contracts:
+  redis-pubsub:
+    version: "1.0.0"
+    file: "contracts/events/redis-pubsub-channels.md"
+    last_validated: "2026-01-20T12:00:00Z"
+    publishers: ["opa-quotes-streamer"]
+    subscribers: ["opa-capacity-api", "opa-prediction-*"]
+    
+  quotes-data-model:
+    version: "1.0.0"
+    file: "contracts/data-models/quotes.md"
+    last_validated: "2026-01-20T12:00:00Z"
+    consumers: ["opa-quotes-storage", "opa-quotes-api"]
+    
+  capacity-data-model:
+    version: "1.0.0"
+    file: "contracts/data-models/capacity.md"
+    last_validated: "2026-01-20T12:00:00Z"
+    consumers: ["opa-capacity-compute", "opa-capacity-api"]
+
+# Conflictos conocidos
+known_conflicts:
+  - id: "port-5432-postgres-local"
+    severity: high
+    description: "PostgreSQL local Windows ocupa puerto 5432"
+    workaround: "Usar puertos 5433+ para contenedores Docker"
+    resolution: "Detener PostgreSQL local o usar puertos alternativos"
+    
+  - id: "encoding-windows-cp850"
+    severity: medium
+    description: "Consola Windows usa Codepage 850, errores con UTF-8"
+    workaround: "export PYTHONIOENCODING=utf-8"
+    resolution: "Configurar encoding UTF-8 en .env o perfil shell"
