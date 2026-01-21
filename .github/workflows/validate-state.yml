@@ -1,0 +1,57 @@
+name: Validate Infrastructure State
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'state.yaml'
+      - 'contracts/**'
+      - 'scripts/validate_state.py'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'state.yaml'
+      - 'contracts/**'
+      - 'scripts/validate_state.py'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyyaml jsonschema
+        
+    - name: Validate state.yaml structure
+      run: |
+        python scripts/validate_state.py
+        
+    - name: Check for duplicate ports
+      run: |
+        python scripts/validate_state.py --check-duplicates
+        
+    - name: Verify contracts exist
+      run: |
+        for contract in $(python scripts/query_state.py contracts); do
+          if [ ! -f "contracts/$contract.md" ]; then
+            echo "❌ Missing contract: contracts/$contract.md"
+            exit 1
+          fi
+        done
+        echo "✅ All contracts verified"
+        
+    - name: Validate YAML syntax
+      run: |
+        python -c "import yaml; yaml.safe_load(open('state.yaml'))"
+        echo "✅ state.yaml is valid YAML"
+
