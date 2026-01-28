@@ -19,14 +19,17 @@ containers:
   timescaledb_capacity:
     image: "timescale/timescaledb:2.16.1-pg16"
     port: 5434
-    status: reserved
-    health: unknown
+    status: active
+    health: healthy
     container_name: "opa-capacity-storage-dev"
     credentials:
       user: opa_user
       password: opa_password
       database: opa_capacity
-    notes: "TimescaleDB para módulo Capacity (futuro)"
+    notes: "TimescaleDB para módulo Capacity (OPA-387)"
+    setup_issue: "OPA-387"
+    schema: "raw_data"
+    tables: ["companies", "events_8k", "additional_docs", "financial_data", "prices_historical", "success_matrix", "event_vectors", "capacity_scores"]
     
   redis:
     image: "redis:7.2-alpine"
